@@ -1,111 +1,101 @@
-# Example Convex Component: Rate Limiter
+# Convex Action Retrier
 
-This is a Convex component, ready to be published on npm.
+Actions can sometimes fail due to network errors, server restarts, or issues with a
+3rd party API, and it's often useful to retry them. The Action Retrier component
+makes this really easy.
 
-To create your own component:
+```ts
+import { ActionRetrier } from "@convex-dev/action-retrier/client";
+import { components } from "./convex/_generated/server";
 
-- change the "name" field in package.json
-- modify src/component/convex.config.ts to use your component name
+const retrier = new ActionRetrier(components.actionRetrier);
 
-To develop your component run a dev process in the example project.
-
-```
-cd example
-npm i
-npx convex dev
-```
-
-Modify the schema and index files in src/component/ to define your component.
-
-Optionally write a client forusing this component in src/client/index.ts.
-
-If you won't be adding frontend code (e.g. React components) to this
-component you can delete the following:
-
-- "prepack" and "postpack" scripts of package.json
-- "./frontend" exports in package.json
-- the "src/frontend/" directory
-- the "node10stubs.mjs" file
-
-### Component Directory structure
-
-```
-.
-├── README.md           documentation of your component
-├── package.json        component name, version number, other metadata
-├── package-lock.json   Components are like libraries, package-lock.json
-│                       is .gitignored and ignored by consumers.
-├── src
-│   ├── component/
-│   │   ├── _generated/ Files here are generated.
-│   │   ├── convex.config.ts  Name your component here and use other components
-│   │   ├── index.ts    Define functions here and in new files in this directory
-│   │   └── schema.ts   schema specific to this component
-│   ├── client.ts       "Fat" client code goes here.
-│   └── frontend/       Code intended to be used on the frontend goes here.
-│       │               Your are free to delete this if this component
-│       │               does not provide code.
-│       └── index.ts
-├── example/            example Convex app that uses this component
-│   │                   Run 'npx convex dev' from here during development.
-│   ├── package.json.ts Thick client code goes here.
-│   └── convex/
-│       ├── _generated/
-│       ├── convex.config.ts  Imports and uses this component
-│       ├── myFunctions.ts    Functions that use the component
-│       ├── schema.ts         Example app schema
-│       └── tsconfig.json
-│  
-├── dist/               Publishing artifacts will be created here.
-├── commonjs.json       Used during build by TypeScript.
-├── esm.json            Used during build by TypeScript.
-├── node10stubs.mjs     Script used during build for compatibility
-│                       with the Metro bundler used with React Native.
-├── eslint.config.mjs   Recommended lints for writing a component.
-│                       Feel free to customize it.
-└── tsconfig.json       Recommended tsconfig.json for writing a component.
-                        Some settings can be customized, some are required.
+// Within your mutation or action...
+await retrier.runWithRetries(ctx, internal.module.myAction, { arg: 123 });
 ```
 
-### Structure of a Convex Component
+Then, the retrier component will run the action and retry it on failure, sleeping with exponential backoff, until the action succeeds or the maximum number of retries is reached.
 
-A Convex components exposes the entry point convex.config.js. The on-disk
-location of this file must be a directory containing implementation files. These
-files should be compiled to ESM.
-The package.json should contain `"type": "module"` and the tsconfig.json should
-contain `"moduleResolution": "Bundler"` or `"Node16"` in order to import other
-component definitions.
+## Installation
 
-In addition to convex.config.js, a component typically exposes a client that
-wraps communication with the component for use in the Convex
-environment is typically exposed as a named export `MyComponentClient` or
-`MyComponent` imported from the root package.
+First, add `@convex-dev/action-retrier` as an NPM dependency:
 
 ```
-import { MyComponentClient } from "my-convex-component";
+npm install @convex-dev/action-retrier
 ```
 
-When frontend code is included it is typically published at a subpath:
+Then, install the component into your Convex project within the `convex/convex.config.ts` configuration file:
 
+```ts
+// convex/convex.config.ts
+import actionRetrier from "@convex-dev/action-retrier/component";
+import { defineApp } from "convex/server";
+
+const app = defineApp();
+app.use(actionRetrier);
+
+export default app;
 ```
-import { helper } from "my-convex-component/frontend";
-import { FrontendReactComponent } from "my-convex-component/react";
+
+Finally, create a new `ActionRetrier` within your Convex project, and point it to the installed component:
+
+```ts
+// convex/index.ts
+import { ActionRetrier } from "@convex-dev/action-retrier/client";
+import { components } from "./_generated/server";
+
+const actionRetrier = new ActionRetrier(components.actionRetrier);
 ```
 
-Frontend code should be compiled as CommonJS code as well as ESM and make use of
-subpackage stubs (see next section).
+You can optionally configure the retrier's backoff behavior in the `ActionRetrier` constructor.
 
-If you do include frontend components, prefer peer dependencies to avoid using
-more than one version of e.g. React.
+```ts
+const actionRetrier = new ActionRetrier(components.actionRetrier, {
+  base: 10,
+  maxFailures: 4,
+  retryBackoffMs: 10000,
+  waitBackoffMs: 1000,
+});
+```
 
-### Support for Node10 module resolution
+- `base` is the base for the exponential backoff (default: 2).
+- `maxFailures` is the maximum number of times to retry the action (default: 16).
+- `retryBackoffMs` is the initial delay after a failure before retrying (default: 100).
+- `waitBackoffMs` is the initial delay before checking the action's status (default: 100).
 
-The [Metro](https://reactnative.dev/docs/metro) bundler for React Native
-requires setting
-[`resolver.unstable_enablePackageExports`](https://metrobundler.dev/docs/package-exports/)
-in order to import code that lives in `dist/esm/frontend.js` from a path like
-`my-convex-component/frontend`.
+## API
 
-Authors of Convex component that provide frontend components are encouraged to
-support these legacy "Node10-style" module resolution algorithms by generating
-stub directories with special pre- and post-pack scripts.
+After installing the component, use the `runWithRetries` method to kick off an action.
+
+```ts
+// convex/index.ts
+
+const exampleAction = internalAction({
+  args: { failureRate: v.number() },
+  handler: async (ctx, args) => {
+    if (Math.random() < args.failureRate) {
+      throw new Error("I can't go for that.");
+    }
+  },
+});
+
+const exampleMutation = mutation(async (ctx) => {
+  await retrier.runWithRetries(ctx, internal.index.exampleAction, {
+    failureRate: 0.8,
+  });
+});
+```
+
+You can also specify overrides for the backoff parameters when calling `runWithRetries`.
+
+```ts
+// convex/index.ts
+
+const exampleMutation = mutation(async (ctx) => {
+  await retrier.runWithRetries(ctx, internal.index.exampleAction, { failureRate: 0.8 }, {
+    base: 10,
+    maxFailures: 4,
+    retryBackoffMs: 10000,
+    waitBackoffMs: 1000,
+});
+```
