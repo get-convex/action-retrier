@@ -1,30 +1,48 @@
-import { createFunctionHandle, Expand, FunctionArgs, FunctionReference, GenericActionCtx, GenericDataModel, GenericMutationCtx } from "convex/server";
-import { api } from "../component/_generated/api.js"
+import {
+  createFunctionHandle,
+  Expand,
+  FunctionArgs,
+  FunctionReference,
+  GenericDataModel,
+  GenericMutationCtx,
+  GenericQueryCtx,
+} from "convex/server";
+import { api } from "../component/_generated/api.js";
 import { GenericId } from "convex/values";
+import { LogLevel, RunResult, runResult } from "../component/schema.js";
+
+export type RunId = string & { __isRunId: true };
+
+export type RunStatus =
+  | { type: "inProgress" }
+  | { type: "completed"; result: RunResult };
 
 export type Options = {
   /**
-   * Initial delay before checking action status, in milliseconds. Defaults to 100.
+   * Iniital delay before retrying a failure, in milliseconds. Defaults to 250ms.
    */
-  waitBackoffMs?: number,
-  /**
-   * Iniital delay before retrying a failure, in milliseconds. Defaults to 100.
-   */
-  retryBackoffMs?: number,
+  initialBackoffMs?: number;
   /**
    * Base for the exponential backoff. Defaults to 2.
    */
-  base?: number,
+  base?: number;
   /**
-   * The maximum number of times to retry failures. Defaults to 16.
+   * The maximum number of times to retry failures before giving up. Defaults to 4.
    */
-  maxFailures?: number,
-}
+  maxFailures?: number;
+  /**
+   * The log level for the retrier. Defaults to `INFO`.
+   */
+  logLevel?: LogLevel;
+};
 
-const DEFAULT_WAIT_BACKOFF_MS = 100;
-const DEFAULT_RETRY_BACKOFF_MS = 100;
+export type RunOptions = Options & {
+  onComplete?: FunctionReference<"mutation", any, { result: RunResult }, any>;
+};
+
+const DEFAULT_INITIAL_BACKOFF_MS = 250;
 const DEFAULT_BASE = 2;
-const DEFAULT_MAX_FAILURES = 16;
+const DEFAULT_MAX_FAILURES = 4;
 
 export class ActionRetrier {
   options: Required<Options>;
@@ -34,46 +52,122 @@ export class ActionRetrier {
    * ```ts
    * import { components } from "./_generated/server"
    * const actionRetrier = new ActionRetrier(components.actionRetrier)
-   * 
+   *
    * // In a mutation or action...
-   * await actionRetrier.runWithRetries(ctx, internal.module.myAction, { arg: 123 });
+   * await actionRetrier.run(ctx, internal.module.myAction, { arg: 123 });
    * ```
-   * 
+   *
    * @param component - The registered action retrier from `components`.
    * @param options - Optional overrides for the default backoff and retry behavior.
    */
-  constructor(private component: UseApi<typeof api>, options?: Options) {
+  constructor(
+    private component: UseApi<typeof api>,
+    options?: Options,
+  ) {
+    let DEFAULT_LOG_LEVEL: LogLevel = "INFO";
+    if (process.env.ACTION_RETRIER_LOG_LEVEL) {
+      if (
+        !["DEBUG", "INFO", "WARN", "ERROR"].includes(
+          process.env.ACTION_RETRIER_LOG_LEVEL,
+        )
+      ) {
+        console.warn(
+          `Invalid log level (${process.env.ACTION_RETRIER_LOG_LEVEL}), defaulting to "INFO"`,
+        );
+      }
+      DEFAULT_LOG_LEVEL = process.env.ACTION_RETRIER_LOG_LEVEL as LogLevel;
+    }
     this.options = {
-      waitBackoffMs: options?.waitBackoffMs ?? DEFAULT_WAIT_BACKOFF_MS,
-      retryBackoffMs: options?.retryBackoffMs ?? DEFAULT_RETRY_BACKOFF_MS,
+      initialBackoffMs: options?.initialBackoffMs ?? DEFAULT_INITIAL_BACKOFF_MS,
       base: options?.base ?? DEFAULT_BASE,
       maxFailures: options?.maxFailures ?? DEFAULT_MAX_FAILURES,
-    };    
+      logLevel: options?.logLevel ?? DEFAULT_LOG_LEVEL,
+    };
   }
 
   /**
-   * 
+   * Run an action with retries, optionally with an `onComplete` mutation callback.
+   *
    * @param ctx - The context object from your mutation or action.
    * @param reference - The function reference to run, e.g., `internal.module.myAction`.
    * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
-   * @param options - Optional overrides for the default backoff and retry behavior.
+   * @param options.initialBackoffMs - Optional override for the default initial backoff on failure.
+   * @param options.base - Optional override for the default base for the exponential backoff.
+   * @param options.maxFailures - Optional override for the default maximum number of retries.
+   * @param options.onComplete - Optional mutation to run after the function succeeds, fails,
+   * or is canceled. This function must take in a single `result` argument of type `RunResult`: use
+   * `runResultValidator` to validate this argument.
+   * @returns - A `RunId` for the run that can be used to query its status below.
    */
-  async runWithRetries<F extends FunctionReference<"action", any, any, any>>(
-    ctx: GenericMutationCtx<GenericDataModel> | GenericActionCtx<GenericDataModel>,
+  async run<F extends FunctionReference<"action", any, any, any>>(
+    ctx: RunMutationCtx,
     reference: F,
     args?: FunctionArgs<F>,
-    options?: Options,  
-  ): Promise<void> {
-    const filledArgs = args ?? {};
-    const filledOptions = {...this.options, ...(options ?? {})};
+    options?: RunOptions,
+  ): Promise<RunId> {
     const handle = await createFunctionHandle(reference);
-    await ctx.runMutation(this.component.index.runWithRetries, {
+    let onComplete: string | undefined;
+    if (options?.onComplete) {
+      onComplete = await createFunctionHandle(options.onComplete);
+    }
+    const runId = await ctx.runMutation(this.component.public.start, {
       functionHandle: handle,
-      functionArgs: filledArgs,
-      options: filledOptions,
-    });  
+      functionArgs: args ?? {},
+      options: {
+        initialBackoffMs:
+          options?.initialBackoffMs ?? this.options.initialBackoffMs,
+        base: options?.base ?? this.options.base,
+        maxFailures: options?.maxFailures ?? this.options.maxFailures,
+        logLevel: options?.logLevel ?? this.options.logLevel,
+        onComplete,
+      },
+    });
+    return runId as RunId;
+  }
+
+  /**
+   * Query the status of a run.
+   *
+   * @param ctx - The context object from your query, mutation, or action.
+   * @param runId - The `RunId` returned from `run`.
+   * @returns - An object indicating whether the run is in progress or has completed. If
+   * the run has completed, the `result.type` field indicates whether it succeeded,
+   * failed, or was canceled.
+   */
+  async status(ctx: RunQueryCtx, runId: RunId): Promise<RunStatus> {
+    return ctx.runQuery(this.component.public.status, { runId });
+  }
+
+  /**
+   * Attempt to cancel a run. This method throws if the run isn't currently executing.
+   * If the run is currently executing (and not waiting for retry), action execution may
+   * continue after this method successfully returns.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runId - The `RunId` returned from `run`.
+   */
+  async cancel(ctx: RunMutationCtx, runId: RunId) {
+    await ctx.runMutation(this.component.public.cancel, { runId });
+  }
+
+  /**
+   * Cleanup a completed run's storage from the system. This method throws if the run
+   * doesn't exist or isn't in the completed state.
+   *
+   * The system will also automatically clean up runs that are more than 7 days old.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runId - The `RunId` returned from `run`.
+   */
+  async cleanup(ctx: RunMutationCtx, runId: RunId) {
+    await ctx.runMutation(this.component.public.cleanup, { runId });
   }
 }
+
+/**
+ * Validator for the `result` argument of the `onComplete` callback.
+ */
+export const runResultValidator = runResult;
 
 type UseApi<API> = Expand<{
   [mod in keyof API]: API[mod] extends FunctionReference<
@@ -101,3 +195,11 @@ type OpaqueIds<T> =
       : T extends object
         ? { [K in keyof T]: OpaqueIds<T[K]> }
         : T;
+
+type RunQueryCtx = {
+  runQuery: GenericQueryCtx<GenericDataModel>["runQuery"];
+};
+
+type RunMutationCtx = {
+  runMutation: GenericMutationCtx<GenericDataModel>["runMutation"];
+};

@@ -152,8 +152,20 @@ export type DatabaseWriter = GenericDatabaseWriter<DataModel>;
 
 export declare const components: {
   actionRetrier: {
-    index: {
-      runWithRetries: FunctionReference<
+    public: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        boolean
+      >;
+      cleanup: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        any
+      >;
+      start: FunctionReference<
         "mutation",
         "internal",
         {
@@ -161,12 +173,26 @@ export declare const components: {
           functionHandle: string;
           options: {
             base: number;
+            initialBackoffMs: number;
+            logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
             maxFailures: number;
-            retryBackoffMs: number;
-            waitBackoffMs: number;
+            onComplete?: string;
           };
         },
-        any
+        string
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { runId: string },
+        | { type: "inProgress" }
+        | {
+            result:
+              | { returnValue: any; type: "success" }
+              | { error: string; type: "failed" }
+              | { type: "canceled" };
+            type: "completed";
+          }
       >;
     };
   };
