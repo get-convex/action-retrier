@@ -3,11 +3,10 @@ import { internal } from "./_generated/api.js";
 
 const crons = cronJobs();
 
-crons.daily(
+crons.interval(
   "Cleanup expired runs",
-  { hourUTC: 0, minuteUTC: 0 },
+  { hours: 24 },
   internal.run.cleanupExpiredRuns,
-  {},
 );
 
 export default crons;
