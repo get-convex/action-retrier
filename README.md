@@ -165,7 +165,7 @@ You can cancel a run using the `cancel` method.
 
 ```ts
 const exampleMutation = mutation(async (ctx) => {
-  await retrier.run(ctx, internal.index.exampleAction, {
+  const runId = await retrier.run(ctx, internal.index.exampleAction, {
     failureRate: 0.8,
   });
   await retrier.cancel(ctx, runId);
