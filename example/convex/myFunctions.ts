@@ -12,7 +12,7 @@ const actionRetrier = new ActionRetrier(components.actionRetrier);
 
 // You can fetch data from and send data to third-party APIs via an action:
 export const myAction = internalAction({
-  args: { action: v.string() }, // 0.0 - 1.0
+  args: { action: v.string() },
   handler: async (_ctx, { action }) => {
     switch (action) {
       case "success":
