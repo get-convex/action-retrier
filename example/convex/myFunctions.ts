@@ -15,7 +15,7 @@ export const myAction = internalAction({
   args: { action: v.string() },
   handler: async (_ctx, { action }) => {
     switch (action) {
-      case "success":
+      case "succeed":
         console.log("success");
         break;
       case "fail random":
