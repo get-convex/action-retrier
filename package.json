@@ -1,5 +1,5 @@
 {
-  "name": "action-retrier",
+  "name": "@get-convex/action-retrier",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
