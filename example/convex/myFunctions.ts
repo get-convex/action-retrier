@@ -18,7 +18,7 @@ export const myAction = internalAction({
       case "succeed":
         console.log("success");
         break;
-      case "fail random":
+      case "fail randomly":
         if (Math.random() < 0.8) {
           throw new Error("action failed.");
         }
