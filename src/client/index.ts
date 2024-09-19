@@ -44,20 +44,6 @@ const DEFAULT_INITIAL_BACKOFF_MS = 250;
 const DEFAULT_BASE = 2;
 const DEFAULT_MAX_FAILURES = 4;
 
-let DEFAULT_LOG_LEVEL: LogLevel = "INFO";
-if (process.env.ACTION_RETRIER_LOG_LEVEL) {
-  if (
-    !["DEBUG", "INFO", "WARN", "ERROR"].includes(
-      process.env.ACTION_RETRIER_LOG_LEVEL,
-    )
-  ) {
-    console.warn(
-      `Invalid log level (${process.env.ACTION_RETRIER_LOG_LEVEL}), defaulting to "INFO"`,
-    );
-  }
-  DEFAULT_LOG_LEVEL = process.env.ACTION_RETRIER_LOG_LEVEL as LogLevel;
-}
-
 export class ActionRetrier {
   options: Required<Options>;
 
@@ -78,6 +64,19 @@ export class ActionRetrier {
     private component: UseApi<typeof api>,
     options?: Options,
   ) {
+    let DEFAULT_LOG_LEVEL: LogLevel = "INFO";
+    if (process.env.ACTION_RETRIER_LOG_LEVEL) {
+      if (
+        !["DEBUG", "INFO", "WARN", "ERROR"].includes(
+          process.env.ACTION_RETRIER_LOG_LEVEL,
+        )
+      ) {
+        console.warn(
+          `Invalid log level (${process.env.ACTION_RETRIER_LOG_LEVEL}), defaulting to "INFO"`,
+        );
+      }
+      DEFAULT_LOG_LEVEL = process.env.ACTION_RETRIER_LOG_LEVEL as LogLevel;
+    }
     this.options = {
       initialBackoffMs: options?.initialBackoffMs ?? DEFAULT_INITIAL_BACKOFF_MS,
       base: options?.base ?? DEFAULT_BASE,

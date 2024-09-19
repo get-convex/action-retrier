@@ -48,7 +48,7 @@ export const kickoffMyAction = mutation({
   handler: async (ctx, args) => {
     const id: any = await actionRetrier.run(
       ctx,
-      internal.myFunctions.myAction,
+      internal.example.myAction,
       {
         action: args.action,
       },
@@ -56,7 +56,7 @@ export const kickoffMyAction = mutation({
         initialBackoffMs: 1000,
         base: 2,
         maxFailures: 2,
-        onComplete: internal.myFunctions.completion,
+        onComplete: internal.example.completion,
       },
     );
     return id;
