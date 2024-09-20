@@ -5,7 +5,7 @@ Actions can sometimes fail due to network errors, server restarts, or issues wit
 makes this really easy.
 
 ```ts
-import { ActionRetrier } from "@convex-dev/action-retrier/client";
+import { ActionRetrier } from "@convex-dev/action-retrier";
 import { components } from "./convex/_generated/server";
 
 const retrier = new ActionRetrier(components.actionRetrier);
@@ -28,8 +28,8 @@ Then, install the component into your Convex project within the `convex/convex.c
 
 ```ts
 // convex/convex.config.ts
-import actionRetrier from "@convex-dev/action-retrier/component";
 import { defineApp } from "convex/server";
+import actionRetrier from "@convex-dev/action-retrier/convex.config.js";
 
 const app = defineApp();
 app.use(actionRetrier);
@@ -40,8 +40,8 @@ Finally, create a new `ActionRetrier` within your Convex project, and point it t
 
 ```ts
 // convex/index.ts
-import { ActionRetrier } from "@convex-dev/action-retrier/client";
-import { components } from "./_generated/server";
+import { ActionRetrier } from "@convex-dev/action-retrier";
+import { components } from "./_generated/api";
 
 const actionRetrier = new ActionRetrier(components.actionRetrier);
 ```
@@ -110,7 +110,7 @@ eventually run exactly once.
 ```ts
 // convex/index.ts
 
-import { runResultValidator } from "@convex-dev/action-retrier/client";
+import { runResultValidator } from "@convex-dev/action-retrier";
 
 const exampleMutation = mutation(async (ctx) => {
   await retrier.run(

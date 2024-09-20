@@ -1,7 +1,6 @@
 import { defineApp } from "convex/server";
-import component from "../../src/component/convex.config";
+import actionRetrier from "@convex-dev/action-retrier/convex.config.js";
 
 const app = defineApp();
-app.use(component, { name: "actionRetrier" });
-
+app.use(actionRetrier);
 export default app;

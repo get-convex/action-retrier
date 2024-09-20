@@ -39,4 +39,86 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
+export declare const components: {
+  actionRetrier: {
+    index: {
+      checkRateLimit: FunctionReference<
+        "query",
+        "internal",
+        {
+          count?: number;
+          key?: string;
+          name: string;
+          name2: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: boolean; retryAt?: number; ts?: number; value?: number }
+      >;
+      rateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          count?: number;
+          key?: string;
+          name: string;
+          name2: string;
+          reserve?: boolean;
+          throws?: boolean;
+        },
+        { ok: boolean; retryAt?: number }
+      >;
+      resetRateLimit: FunctionReference<
+        "mutation",
+        "internal",
+        { key?: string; name: string },
+        any
+      >;
+    };
+    public: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        boolean
+      >;
+      cleanup: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        any
+      >;
+      start: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          functionArgs: any;
+          functionHandle: string;
+          options: {
+            base: number;
+            initialBackoffMs: number;
+            logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+            maxFailures: number;
+            onComplete?: string;
+          };
+        },
+        string
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { runId: string },
+        | { type: "inProgress" }
+        | {
+            result:
+              | { returnValue: any; type: "success" }
+              | { error: string; type: "failed" }
+              | { type: "canceled" };
+            type: "completed";
+          }
+      >;
+    };
+  };
+};
+
 /* prettier-ignore-end */

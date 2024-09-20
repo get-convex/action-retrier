@@ -1,12 +1,11 @@
 import { v } from "convex/values";
 import {
-  components,
   internalAction,
   internalMutation,
   mutation,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { ActionRetrier, runResultValidator } from "../../src/client/index.js";
+import { internal, components } from "./_generated/api";
+import { ActionRetrier, runResultValidator } from "@convex-dev/action-retrier";
 
 const actionRetrier = new ActionRetrier(components.actionRetrier);
 

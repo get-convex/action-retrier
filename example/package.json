@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "convex dev",
-    "predev": "convex dev --until-success && convex dashboard",
+    "dev": "convex dev --live-component-sources",
     "logs": "convex logs",
     "lint": "tsc -p convex && eslint convex"
   },
   "dependencies": {
-    "convex": "1.16.0-alpha.2"
+    "@convex-dev/action-retrier": "file:..",
+    "convex": "^1.16.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
