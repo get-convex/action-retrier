@@ -1,4 +1,5 @@
 # Convex Action Retrier
+[![npm version](https://badge.fury.io/js/@convex-dev%2Faction-retrier.svg)](https://badge.fury.io/js/@convex-dev%2Faction-retrier)
 
 Actions can sometimes fail due to network errors, server restarts, or issues with a
 3rd party API, and it's often useful to retry them. The Action Retrier component
