@@ -9,9 +9,15 @@ import { ActionRetrier, runResultValidator } from "@convex-dev/action-retrier";
 
 const actionRetrier = new ActionRetrier(components.actionRetrier);
 
+const action = v.union(
+  v.literal("succeed"),
+  v.literal("fail randomly"),
+  v.literal("fail always")
+);
+
 // You can fetch data from and send data to third-party APIs via an action:
 export const myAction = internalAction({
-  args: { action: v.string() },
+  args: { action },
   handler: async (_ctx, { action }) => {
     switch (action) {
       case "succeed":
@@ -41,9 +47,7 @@ export const completion = internalMutation({
 });
 
 export const kickoffMyAction = mutation({
-  args: {
-    action: v.string(),
-  },
+  args: { action },
   handler: async (ctx, args) => {
     const id: any = await actionRetrier.run(
       ctx,
@@ -56,7 +60,7 @@ export const kickoffMyAction = mutation({
         base: 2,
         maxFailures: 2,
         onComplete: internal.example.completion,
-      },
+      }
     );
     return id;
   },
