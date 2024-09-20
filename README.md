@@ -1,4 +1,5 @@
 # Convex Action Retrier
+
 [![npm version](https://badge.fury.io/js/@convex-dev%2Faction-retrier.svg)](https://badge.fury.io/js/@convex-dev%2Faction-retrier)
 
 Actions can sometimes fail due to network errors, server restarts, or issues with a
@@ -80,11 +81,9 @@ export const exampleAction = internalAction({
 });
 
 export const kickoffExampleAction = action(async (ctx) => {
-  const runId = await retrier.run(
-    ctx,
-    internal.index.exampleAction,
-    { failureRate: 0.8 },
-  );
+  const runId = await retrier.run(ctx, internal.index.exampleAction, {
+    failureRate: 0.8,
+  });
 });
 ```
 
@@ -130,7 +129,10 @@ export const exampleCallback = internalMutation({
   args: { result: runResultValidator },
   handler: async (ctx, args) => {
     if (args.result.type === "success") {
-      console.log("Action succeeded with return value:", args.result.returnValue);
+      console.log(
+        "Action succeeded with return value:",
+        args.result.returnValue,
+      );
     } else if (args.result.type === "failed") {
       console.log("Action failed with error:", args.result.error);
     } else if (args.result.type === "canceled") {
@@ -204,7 +206,7 @@ export const kickoffExampleAction = action(async (ctx) => {
     }
   } finally {
     await retrier.cleanup(ctx, runId);
-  }  
+  }
 });
 ```
 
