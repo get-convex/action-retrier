@@ -21,7 +21,7 @@ Then, the retrier component will run the action and retry it on failure, sleepin
 
 First, add `@convex-dev/action-retrier` as an NPM dependency:
 
-```
+```sh
 npm install @convex-dev/action-retrier
 ```
 
@@ -44,13 +44,13 @@ Finally, create a new `ActionRetrier` within your Convex project, and point it t
 import { ActionRetrier } from "@convex-dev/action-retrier";
 import { components } from "./_generated/api";
 
-const actionRetrier = new ActionRetrier(components.actionRetrier);
+export const retrier = new ActionRetrier(components.actionRetrier);
 ```
 
 You can optionally configure the retrier's backoff behavior in the `ActionRetrier` constructor.
 
 ```ts
-const actionRetrier = new ActionRetrier(components.actionRetrier, {
+const retrier = new ActionRetrier(components.actionRetrier, {
   initialBackoffMs: 10000,
   base: 10,
   maxFailures: 4,
@@ -65,12 +65,12 @@ const actionRetrier = new ActionRetrier(components.actionRetrier, {
 
 ### Starting a run
 
-After installing the component, use the `run` method to kick off an action.
+After installing the component, use the `run` method from either a mutation or action to kick off an action.
 
 ```ts
 // convex/index.ts
 
-const exampleAction = internalAction({
+export const exampleAction = internalAction({
   args: { failureRate: v.number() },
   handler: async (ctx, args) => {
     if (Math.random() < args.failureRate) {
@@ -79,20 +79,22 @@ const exampleAction = internalAction({
   },
 });
 
-const exampleMutation = mutation(async (ctx) => {
-  await retrier.run(ctx, internal.index.exampleAction, {
-    failureRate: 0.8,
-  });
+export const kickoffExampleAction = action(async (ctx) => {
+  const runId = await retrier.run(
+    ctx,
+    internal.index.exampleAction,
+    { failureRate: 0.8 },
+  );
 });
 ```
 
-You can optionally specify overrides to the backoff parameters in the third options argument.
+You can optionally specify overrides to the backoff parameters in an options argument.
 
 ```ts
 // convex/index.ts
 
-const exampleMutation = mutation(async (ctx) => {
-  await retrier.run(
+export const kickoffExampleAction = action(async (ctx) => {
+  const runId = await retrier.run(
     ctx,
     internal.index.exampleAction,
     { failureRate: 0.8 },
@@ -113,8 +115,8 @@ eventually run exactly once.
 
 import { runResultValidator } from "@convex-dev/action-retrier";
 
-const exampleMutation = mutation(async (ctx) => {
-  await retrier.run(
+export const kickoffExampleAction = action(async (ctx) => {
+  const runId = await retrier.run(
     ctx,
     internal.index.exampleAction,
     { failureRate: 0.8 },
@@ -127,16 +129,12 @@ const exampleMutation = mutation(async (ctx) => {
 export const exampleCallback = internalMutation({
   args: { result: runResultValidator },
   handler: async (ctx, args) => {
-    switch (args.result.type) {
-      case "success":
-        console.log("Return value:", args.result.returnValue);
-        break;
-      case "failed":
-        console.log("Action failed:", args.result.error);
-        break;
-      case "canceled":
-        console.log("Action canceled");
-        break;
+    if (args.result.type === "success") {
+      console.log("Action succeeded with return value:", args.result.returnValue);
+    } else if (args.result.type === "failed") {
+      console.log("Action failed with error:", args.result.error);
+    } else if (args.result.type === "canceled") {
+      console.log("Action was canceled.");
     }
   },
 });
@@ -147,15 +145,19 @@ export const exampleCallback = internalMutation({
 The `run` method returns a `RunId`, which can then be used for querying a run's status.
 
 ```ts
-const exampleMutation = mutation(async (ctx) => {
+export const kickoffExampleAction = action(async (ctx) => {
   const runId = await retrier.run(ctx, internal.index.exampleAction, {
     failureRate: 0.8,
   });
-  const status = await retrier.status(ctx, runId);
-  if (status.type === "inProgress") {
-    console.log("Run in progress");
-  } else if (status.type === "completed") {
-    console.log("Run completed with result:", status.result);
+  while (true) {
+    const status = await retrier.status(ctx, runId);
+    if (status.type === "inProgress") {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      continue;
+    } else {
+      console.log("Run completed with result:", status.result);
+      break;
+    }
   }
 });
 ```
@@ -165,10 +167,11 @@ const exampleMutation = mutation(async (ctx) => {
 You can cancel a run using the `cancel` method.
 
 ```ts
-const exampleMutation = mutation(async (ctx) => {
+export const kickoffExampleAction = action(async (ctx) => {
   const runId = await retrier.run(ctx, internal.index.exampleAction, {
     failureRate: 0.8,
   });
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await retrier.cancel(ctx, runId);
 });
 ```
@@ -182,6 +185,28 @@ does guarantee that subsequent `status` calls will indicate cancelation.
 Runs take up space in the database, since they store their return values. After
 a run completes, you can immediately clean up its storage by using `retrier.cleanup(ctx, runId)`.
 The system will automatically cleanup completed runs after 7 days.
+
+```ts
+export const kickoffExampleAction = action(async (ctx) => {
+  const runId = await retrier.run(ctx, internal.index.exampleAction, {
+    failureRate: 0.8,
+  });
+  try {
+    while (true) {
+      const status = await retrier.status(ctx, runId);
+      if (status.type === "inProgress") {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      } else {
+        console.log("Run completed with result:", status.result);
+        break;
+      }
+    }
+  } finally {
+    await retrier.cleanup(ctx, runId);
+  }  
+});
+```
 
 ## Logging
 
