@@ -1,7 +1,15 @@
 {
   "name": "@convex-dev/action-retrier",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Convex component for retrying idempotent actions.",
+  "keywords": [
+    "convex",
+    "retry",
+    "idempotency"
+  ],
+  "homepage": "https://github.com/get-convex/action-retrier-component",
+  "repository": "github:get-convex/action-retrier-component",
+  "bugs": "https://github.com/get-convex/action-retrier-component/issues",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -15,7 +23,7 @@
   },
   "files": [
     "dist",
-    "src"    
+    "src"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -36,7 +44,7 @@
         "@convex-dev/component-source": "./src/component/convex.config.ts",
         "types": "./dist/esm/component/convex.config.d.ts",
         "default": "./dist/esm/component/convex.config.js"
-      }      
+      }
     }
   },
   "dependencies": {
