@@ -7,9 +7,9 @@
     "retry",
     "idempotency"
   ],
-  "homepage": "https://github.com/get-convex/action-retrier-component",
-  "repository": "github:get-convex/action-retrier-component",
-  "bugs": "https://github.com/get-convex/action-retrier-component/issues",
+  "homepage": "https://github.com/get-convex/action-retrier",
+  "repository": "github:get-convex/action-retrier",
+  "bugs": "https://github.com/get-convex/action-retrier/issues",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
