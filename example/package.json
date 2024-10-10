@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@convex-dev/action-retrier": "file:..",
-    "convex": "1.16.5"
+    "convex": "^1.16.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
