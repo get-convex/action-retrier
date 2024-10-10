@@ -41,40 +41,6 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   actionRetrier: {
-    index: {
-      checkRateLimit: FunctionReference<
-        "query",
-        "internal",
-        {
-          count?: number;
-          key?: string;
-          name: string;
-          name2: string;
-          reserve?: boolean;
-          throws?: boolean;
-        },
-        { ok: boolean; retryAt?: number; ts?: number; value?: number }
-      >;
-      rateLimit: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          count?: number;
-          key?: string;
-          name: string;
-          name2: string;
-          reserve?: boolean;
-          throws?: boolean;
-        },
-        { ok: boolean; retryAt?: number }
-      >;
-      resetRateLimit: FunctionReference<
-        "mutation",
-        "internal",
-        { key?: string; name: string },
-        any
-      >;
-    };
     public: {
       cancel: FunctionReference<
         "mutation",
