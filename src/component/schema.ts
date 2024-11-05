@@ -24,13 +24,16 @@ export const runResult = v.union(
   v.object({
     type: v.literal("success"),
     returnValue: v.any(),
+    runId: v.string(),
   }),
   v.object({
     type: v.literal("failed"),
     error: v.string(),
+    runId: v.string(),
   }),
   v.object({
     type: v.literal("canceled"),
+    runId: v.string(),
   }),
 );
 export type RunResult = Infer<typeof runResult>;
