@@ -87,12 +87,14 @@ export const execute = internalAction({
       result = {
         type: "success",
         returnValue: functionResult,
+        runId: run._id,
       };
     } catch (e: any) {
       logger.error(`Error executing ${args.runId}: ${e.message}`);
       result = {
         type: "failed",
         error: e.message,
+        runId: run._id,
       };
     }
     await ctx.runMutation(internal.run.finishExecution, {
@@ -140,6 +142,7 @@ export const heartbeat = internalMutation({
       const result: RunResult = {
         type: "failed",
         error: TRANSIENT_ERROR_MESSAGE,
+        runId: run._id,
       };
       await finishExecution(ctx, { runId: args.runId, result });
       return;
@@ -170,6 +173,7 @@ export const heartbeat = internalMutation({
         const result: RunResult = {
           type: "failed",
           error: TRANSIENT_ERROR_MESSAGE,
+          runId: run._id,
         };
         await finishExecution(ctx, { runId: args.runId, result });
         break;
@@ -184,7 +188,7 @@ export const heartbeat = internalMutation({
       // our cancelation logic), mark ourselves as canceled.
       case "canceled": {
         logger.debug(`Finishing run ${args.runId} after scheduler cancelation`);
-        const result: RunResult = { type: "canceled" };
+        const result: RunResult = { type: "canceled", runId: run._id };
         await finishExecution(ctx, { runId: args.runId, result });
         break;
       }

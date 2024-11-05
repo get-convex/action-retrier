@@ -31,6 +31,7 @@ export const status = query({
     v.object({
       type: v.literal("completed"),
       result: runResult,
+      runId: v.id("runs"),
     }),
   ),
   handler: async (ctx, args) => {
@@ -43,9 +44,9 @@ export const status = query({
       throw new Error(`Run ${args.runId} not found`);
     }
     if (run.state.type === "inProgress") {
-      return { type: "inProgress" as const };
+      return { type: "inProgress" as const, runId: id };
     } else if (run.state.type === "completed") {
-      return { type: "completed" as const, result: run.state.result };
+      return { type: "completed" as const, result: run.state.result, runId: id };
     } else {
       throw new Error(`Invalid run state: ${JSON.stringify(run.state)}`);
     }
@@ -76,7 +77,7 @@ export const cancel = mutation({
     // Note that this doesn't terminate execution immediately, but
     // we are guaranteed that `finishExecution` won't succeed.
     await ctx.scheduler.cancel(schedulerId);
-    await finishExecution(ctx, { runId: id, result: { type: "canceled" } });
+    await finishExecution(ctx, { runId: id, result: { type: "canceled", runId: id } });
     return true;
   },
 });
