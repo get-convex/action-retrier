@@ -2,8 +2,6 @@
 
 [![npm version](https://badge.fury.io/js/@convex-dev%2Faction-retrier.svg)](https://badge.fury.io/js/@convex-dev%2Faction-retrier)
 
-**Note: Convex Components are currently in beta.**
-
 <!-- START: Include on https://convex.dev/components -->
 
 Actions can sometimes fail due to network errors, server restarts, or issues with a
