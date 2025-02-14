@@ -38,14 +38,6 @@ export type Options = {
 
 export type RunOptions = Options & {
   /**
-   * The time to run the action at. Defaults to the current time.
-   */
-  runAt?: number;
-  /**
-   * The time to wait before running the action. Defaults to 0ms.
-   */
-  runAfter?: number;
-  /**
    * A mutation to run after the action succeeds, fails, or is canceled.
    */
   onComplete?: FunctionReference<"mutation", any, { result: RunResult }, any>;
@@ -131,6 +123,55 @@ export class ActionRetrier {
       },
     });
     return runId as RunId;
+  }
+
+  /**
+   * Run an action like {@link run} but no earlier than a specific timestamp.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runAtTimestampMs - The timestamp in milliseconds to run the action at.
+   * @param reference - The function reference to run, e.g., `internal.module.myAction`.
+   * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
+   * @param options - See {@link RunOptions}.
+   */
+  async runAt<F extends FunctionReference<"action">>(
+    ctx: RunMutationCtx,
+    runAtTimestampMs: number,
+    reference: F,
+    args?: FunctionArgs<F>,
+    options?: RunOptions,
+  ) {
+    const opts = {
+      ...options,
+      runAt: runAtTimestampMs,
+    };
+    return this.run(ctx, reference, args, opts);
+  }
+
+  /**
+   * Run an action like {@link run} but no earlier than after specific delay.
+   *
+   * Note: the delay is from the time of calling this, not from when it's made
+   * it to the front of the queue.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runAfterMs - The delay in milliseconds before running the action.
+   * @param reference - The function reference to run, e.g., `internal.module.myAction`.
+   * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
+   * @param options - See {@link RunOptions}.
+   */
+  async runAfter<F extends FunctionReference<"action">>(
+    ctx: RunMutationCtx,
+    runAfterMs: number,
+    reference: F,
+    args?: FunctionArgs<F>,
+    options?: RunOptions,
+  ) {
+    const opts = {
+      ...options,
+      runAfter: runAfterMs,
+    };
+    return this.run(ctx, reference, args, opts);
   }
 
   /**
