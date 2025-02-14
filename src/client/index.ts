@@ -37,6 +37,17 @@ export type Options = {
 };
 
 export type RunOptions = Options & {
+  /**
+   * The time to run the action at. Defaults to the current time.
+   */
+  runAt?: number;
+  /**
+   * The time to wait before running the action. Defaults to 0ms.
+   */
+  runAfter?: number;
+  /**
+   * A mutation to run after the action succeeds, fails, or is canceled.
+   */
   onComplete?: FunctionReference<"mutation", any, { result: RunResult }, any>;
 };
 
@@ -99,7 +110,7 @@ export class ActionRetrier {
    * `runResultValidator` to validate this argument.
    * @returns - A `RunId` for the run that can be used to query its status below.
    */
-  async run<F extends FunctionReference<"action", any, any, any>>(
+  async run<F extends FunctionReference<"action">>(
     ctx: RunMutationCtx,
     reference: F,
     args?: FunctionArgs<F>,
@@ -114,11 +125,8 @@ export class ActionRetrier {
       functionHandle: handle,
       functionArgs: args ?? {},
       options: {
-        initialBackoffMs:
-          options?.initialBackoffMs ?? this.options.initialBackoffMs,
-        base: options?.base ?? this.options.base,
-        maxFailures: options?.maxFailures ?? this.options.maxFailures,
-        logLevel: options?.logLevel ?? this.options.logLevel,
+        ...this.options,
+        ...stripUndefined(options),
         onComplete,
       },
     });
@@ -162,6 +170,15 @@ export class ActionRetrier {
   async cleanup(ctx: RunMutationCtx, runId: RunId) {
     await ctx.runMutation(this.component.public.cleanup, { runId });
   }
+}
+
+function stripUndefined<T extends object | undefined>(obj: T): T {
+  if (obj === undefined) {
+    return obj;
+  }
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined),
+  ) as T;
 }
 
 /**

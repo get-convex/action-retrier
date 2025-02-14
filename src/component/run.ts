@@ -17,7 +17,7 @@ export async function startRun(
   options: Options,
 ) {
   const logger = createLogger(options.logLevel);
-  const startTime = Date.now();
+  const startTime = options.runAt ?? Date.now() + (options.runAfter ?? 0);
   const run = {
     functionHandle,
     functionArgs,

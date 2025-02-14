@@ -9,16 +9,17 @@ const logLevel = v.union(
 );
 export type LogLevel = Infer<typeof logLevel>;
 
-export const options = {
+export const options = v.object({
   initialBackoffMs: v.number(),
   base: v.number(),
   maxFailures: v.number(),
   logLevel,
 
+  runAt: v.optional(v.number()),
+  runAfter: v.optional(v.number()),
   onComplete: v.optional(v.string()),
-};
-const optionsObj = v.object(options);
-export type Options = Infer<typeof optionsObj>;
+});
+export type Options = Infer<typeof options>;
 
 export const runResult = v.union(
   v.object({
@@ -59,7 +60,7 @@ export default defineSchema({
     functionHandle: v.string(),
     functionArgs: v.any(),
 
-    options: v.object(options),
+    options,
 
     state: runState,
     numFailures: v.number(),
