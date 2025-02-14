@@ -3,6 +3,7 @@ import {
   Expand,
   FunctionArgs,
   FunctionReference,
+  FunctionVisibility,
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
@@ -102,7 +103,7 @@ export class ActionRetrier {
    * `runResultValidator` to validate this argument.
    * @returns - A `RunId` for the run that can be used to query its status below.
    */
-  async run<F extends FunctionReference<"action">>(
+  async run<F extends FunctionReference<"action", FunctionVisibility>>(
     ctx: RunMutationCtx,
     reference: F,
     args?: FunctionArgs<F>,
@@ -134,7 +135,7 @@ export class ActionRetrier {
    * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
    * @param options - See {@link RunOptions}.
    */
-  async runAt<F extends FunctionReference<"action">>(
+  async runAt<F extends FunctionReference<"action", FunctionVisibility>>(
     ctx: RunMutationCtx,
     runAtTimestampMs: number,
     reference: F,
@@ -160,7 +161,7 @@ export class ActionRetrier {
    * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
    * @param options - See {@link RunOptions}.
    */
-  async runAfter<F extends FunctionReference<"action">>(
+  async runAfter<F extends FunctionReference<"action", FunctionVisibility>>(
     ctx: RunMutationCtx,
     runAfterMs: number,
     reference: F,
