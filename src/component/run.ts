@@ -39,8 +39,8 @@ export async function startRun(
   await ctx.db.replace(runId, run);
   logger.debug(`Started run ${runId} @ ${startTime}`, run);
 
-  const nextHeartbeat = withJitter(HEARTBEAT_INTERVAL_MS);
-  const heartbeatId = await ctx.scheduler.runAfter(
+  const nextHeartbeat = startTime + withJitter(HEARTBEAT_INTERVAL_MS);
+  const heartbeatId = await ctx.scheduler.runAt(
     nextHeartbeat,
     internal.run.heartbeat,
     { runId },
