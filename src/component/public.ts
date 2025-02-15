@@ -7,7 +7,7 @@ export const start = mutation({
   args: {
     functionHandle: v.string(),
     functionArgs: v.any(),
-    options: v.object(options),
+    options,
   },
   returns: v.string(),
   handler: async (ctx, args) => {

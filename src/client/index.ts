@@ -3,15 +3,17 @@ import {
   Expand,
   FunctionArgs,
   FunctionReference,
+  FunctionVisibility,
   GenericDataModel,
   GenericMutationCtx,
   GenericQueryCtx,
 } from "convex/server";
 import { api } from "../component/_generated/api.js";
-import { GenericId } from "convex/values";
+import { GenericId, v, VString } from "convex/values";
 import { LogLevel, RunResult, runResult } from "../component/schema.js";
 
 export type RunId = string & { __isRunId: true };
+export const runIdValidator = v.string() as VString<RunId>;
 
 export type RunStatus =
   | { type: "inProgress" }
@@ -37,6 +39,9 @@ export type Options = {
 };
 
 export type RunOptions = Options & {
+  /**
+   * A mutation to run after the action succeeds, fails, or is canceled.
+   */
   onComplete?: FunctionReference<"mutation", any, { result: RunResult }, any>;
 };
 
@@ -99,7 +104,7 @@ export class ActionRetrier {
    * `runResultValidator` to validate this argument.
    * @returns - A `RunId` for the run that can be used to query its status below.
    */
-  async run<F extends FunctionReference<"action", any, any, any>>(
+  async run<F extends FunctionReference<"action", FunctionVisibility>>(
     ctx: RunMutationCtx,
     reference: F,
     args?: FunctionArgs<F>,
@@ -114,15 +119,61 @@ export class ActionRetrier {
       functionHandle: handle,
       functionArgs: args ?? {},
       options: {
-        initialBackoffMs:
-          options?.initialBackoffMs ?? this.options.initialBackoffMs,
-        base: options?.base ?? this.options.base,
-        maxFailures: options?.maxFailures ?? this.options.maxFailures,
-        logLevel: options?.logLevel ?? this.options.logLevel,
+        ...this.options,
+        ...stripUndefined(options),
         onComplete,
       },
     });
     return runId as RunId;
+  }
+
+  /**
+   * Run an action like {@link run} but no earlier than a specific timestamp.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runAtTimestampMs - The timestamp in milliseconds to run the action at.
+   * @param reference - The function reference to run, e.g., `internal.module.myAction`.
+   * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
+   * @param options - See {@link RunOptions}.
+   */
+  async runAt<F extends FunctionReference<"action", FunctionVisibility>>(
+    ctx: RunMutationCtx,
+    runAtTimestampMs: number,
+    reference: F,
+    args?: FunctionArgs<F>,
+    options?: RunOptions,
+  ) {
+    const opts = {
+      ...options,
+      runAt: runAtTimestampMs,
+    };
+    return this.run(ctx, reference, args, opts);
+  }
+
+  /**
+   * Run an action like {@link run} but no earlier than after specific delay.
+   *
+   * Note: the delay is from the time of calling this, not from when it's made
+   * it to the front of the queue.
+   *
+   * @param ctx - The context object from your mutation or action.
+   * @param runAfterMs - The delay in milliseconds before running the action.
+   * @param reference - The function reference to run, e.g., `internal.module.myAction`.
+   * @param args - Arguments for the action, e.g., `{ arg: 123 }`.
+   * @param options - See {@link RunOptions}.
+   */
+  async runAfter<F extends FunctionReference<"action", FunctionVisibility>>(
+    ctx: RunMutationCtx,
+    runAfterMs: number,
+    reference: F,
+    args?: FunctionArgs<F>,
+    options?: RunOptions,
+  ) {
+    const opts = {
+      ...options,
+      runAfter: runAfterMs,
+    };
+    return this.run(ctx, reference, args, opts);
   }
 
   /**
@@ -162,6 +213,15 @@ export class ActionRetrier {
   async cleanup(ctx: RunMutationCtx, runId: RunId) {
     await ctx.runMutation(this.component.public.cleanup, { runId });
   }
+}
+
+function stripUndefined<T extends object | undefined>(obj: T): T {
+  if (obj === undefined) {
+    return obj;
+  }
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined),
+  ) as T;
 }
 
 /**

@@ -2,17 +2,23 @@ import { v } from "convex/values";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
 } from "./_generated/server";
 import { internal, components } from "./_generated/api";
-import { ActionRetrier, runResultValidator } from "@convex-dev/action-retrier";
+import {
+  ActionRetrier,
+  runResultValidator,
+  RunId,
+  runIdValidator,
+} from "@convex-dev/action-retrier";
 
 const actionRetrier = new ActionRetrier(components.actionRetrier);
 
 const action = v.union(
   v.literal("succeed"),
   v.literal("fail randomly"),
-  v.literal("fail always")
+  v.literal("fail always"),
 );
 
 // You can fetch data from and send data to third-party APIs via an action:
@@ -49,7 +55,7 @@ export const completion = internalMutation({
 export const kickoffMyAction = mutation({
   args: { action },
   handler: async (ctx, args) => {
-    const id: any = await actionRetrier.run(
+    const id: RunId = await actionRetrier.run(
       ctx,
       internal.example.myAction,
       {
@@ -60,8 +66,37 @@ export const kickoffMyAction = mutation({
         base: 2,
         maxFailures: 2,
         onComplete: internal.example.completion,
-      }
+      },
     );
     return id;
+  },
+});
+
+export const kickoffMyActionLater = mutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const id: RunId = await actionRetrier.runAfter(
+      ctx,
+      1000,
+      internal.example.myAction,
+      { action: "succeed" },
+    );
+    await ctx.scheduler.runAfter(500, internal.example.getStatus, {
+      runId: id,
+    });
+    await actionRetrier.runAt(
+      ctx,
+      Date.now() + 700,
+      internal.example.myAction,
+      { action: "succeed" },
+    );
+    return id;
+  },
+});
+
+export const getStatus = internalMutation({
+  args: { runId: runIdValidator },
+  handler: async (ctx, args) => {
+    console.log(await actionRetrier.status(ctx, args.runId));
   },
 });
