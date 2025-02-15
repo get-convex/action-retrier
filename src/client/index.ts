@@ -15,7 +15,7 @@ import { LogLevel, RunResult, runResult } from "../component/schema.js";
 export type RunId = string & { __isRunId: true };
 export const runIdValidator = v.string() as VString<RunId>;
 export const onCompleteValidator = v.object({
-  id: runIdValidator,
+  runId: runIdValidator,
   result: runResult,
 });
 
@@ -58,7 +58,7 @@ export type RunOptions = Options & {
   onComplete?: FunctionReference<
     "mutation",
     FunctionVisibility,
-    { id: RunId; result: RunResult }
+    { runId: RunId; result: RunResult }
   >;
 };
 
