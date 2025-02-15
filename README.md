@@ -121,7 +121,7 @@ eventually run exactly once.
 ```ts
 // convex/index.ts
 
-import { runResultValidator } from "@convex-dev/action-retrier";
+import { runResultValidator, runIdValidator } from "@convex-dev/action-retrier";
 
 export const kickoffExampleAction = action(async (ctx) => {
   const runId = await retrier.run(
@@ -135,7 +135,7 @@ export const kickoffExampleAction = action(async (ctx) => {
 });
 
 export const exampleCallback = internalMutation({
-  args: { result: runResultValidator },
+  args: { id: runIdValidator, result: runResultValidator },
   handler: async (ctx, args) => {
     if (args.result.type === "success") {
       console.log(
