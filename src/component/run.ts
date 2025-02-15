@@ -9,6 +9,7 @@ import {
 import { Options, RunResult, runResult, RunState } from "./schema.js";
 import { internal } from "./_generated/api.js";
 import { createLogger } from "./utils.js";
+import { Id } from "./_generated/dataModel.js";
 
 export async function startRun(
   ctx: MutationCtx,
@@ -74,7 +75,7 @@ export const execute = internalAction({
       );
     }
 
-    const handle = run.functionHandle as FunctionHandle<"action", any, any>;
+    const handle = run.functionHandle as FunctionHandle<"action">;
     let result: RunResult;
     try {
       const startTime = Date.now();
@@ -277,10 +278,12 @@ export const finishExecution = internalMutation({
           logger.debug(`Running onComplete handler for ${args.runId}`);
           const handle = run.options.onComplete as FunctionHandle<
             "mutation",
-            any,
-            any
+            { id: Id<"runs">; result: RunResult }
           >;
-          await ctx.runMutation(handle, { result: args.result });
+          await ctx.runMutation(handle, {
+            id: args.runId,
+            result: args.result,
+          });
           logger.debug(`Finished running onComplete handler for ${args.runId}`);
         } catch (e: any) {
           logger.error(

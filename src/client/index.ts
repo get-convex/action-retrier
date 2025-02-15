@@ -14,6 +14,10 @@ import { LogLevel, RunResult, runResult } from "../component/schema.js";
 
 export type RunId = string & { __isRunId: true };
 export const runIdValidator = v.string() as VString<RunId>;
+export const onCompleteValidator = v.object({
+  id: runIdValidator,
+  result: runResult,
+});
 
 export type RunStatus =
   | { type: "inProgress" }
@@ -41,8 +45,21 @@ export type Options = {
 export type RunOptions = Options & {
   /**
    * A mutation to run after the action succeeds, fails, or is canceled.
+   * You can use the `onCompleteValidator` as an argument validator, like:
+   * ```ts
+   * export const onComplete = mutation({
+   *   args: onCompleteValidator,
+   *   handler: async (ctx, args) => {
+   *     // ...
+   *   },
+   * });
+   * ```
    */
-  onComplete?: FunctionReference<"mutation", any, { result: RunResult }, any>;
+  onComplete?: FunctionReference<
+    "mutation",
+    FunctionVisibility,
+    { id: RunId; result: RunResult }
+  >;
 };
 
 const DEFAULT_INITIAL_BACKOFF_MS = 250;

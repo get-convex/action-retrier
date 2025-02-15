@@ -45,10 +45,11 @@ export const myAction = internalAction({
 
 export const completion = internalMutation({
   args: {
+    id: runIdValidator,
     result: runResultValidator,
   },
   handler: async (ctx, args) => {
-    console.log(args.result);
+    console.log(args.id, args.result);
   },
 });
 
