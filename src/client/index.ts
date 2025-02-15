@@ -9,10 +9,11 @@ import {
   GenericQueryCtx,
 } from "convex/server";
 import { api } from "../component/_generated/api.js";
-import { GenericId } from "convex/values";
+import { GenericId, v, VString } from "convex/values";
 import { LogLevel, RunResult, runResult } from "../component/schema.js";
 
 export type RunId = string & { __isRunId: true };
+export const runIdValidator = v.string() as VString<RunId>;
 
 export type RunStatus =
   | { type: "inProgress" }
