@@ -278,10 +278,10 @@ export const finishExecution = internalMutation({
           logger.debug(`Running onComplete handler for ${args.runId}`);
           const handle = run.options.onComplete as FunctionHandle<
             "mutation",
-            { id: Id<"runs">; result: RunResult }
+            { runId: Id<"runs">; result: RunResult }
           >;
           await ctx.runMutation(handle, {
-            id: args.runId,
+            runId: args.runId,
             result: args.result,
           });
           logger.debug(`Finished running onComplete handler for ${args.runId}`);

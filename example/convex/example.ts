@@ -44,18 +44,18 @@ export const myAction = internalAction({
 
 export const completion = internalMutation({
   args: {
-    id: runIdValidator,
+    runId: runIdValidator,
     result: runResultValidator,
   },
   handler: async (ctx, args) => {
-    console.log(args.id, args.result);
+    console.log(args.runId, args.result);
   },
 });
 
 export const kickoffMyAction = mutation({
   args: { action },
   handler: async (ctx, args) => {
-    const id: RunId = await actionRetrier.run(
+    const runId: RunId = await actionRetrier.run(
       ctx,
       internal.example.myAction,
       {
@@ -68,21 +68,21 @@ export const kickoffMyAction = mutation({
         onComplete: internal.example.completion,
       },
     );
-    return id;
+    return runId;
   },
 });
 
 export const kickoffMyActionLater = mutation({
   args: {},
   handler: async (ctx) => {
-    const id: RunId = await actionRetrier.runAfter(
+    const runId: RunId = await actionRetrier.runAfter(
       ctx,
       1000,
       internal.example.myAction,
       { action: "succeed" },
     );
     await ctx.scheduler.runAfter(500, internal.example.getStatus, {
-      runId: id,
+      runId,
     });
     await actionRetrier.runAt(
       ctx,
@@ -90,7 +90,7 @@ export const kickoffMyActionLater = mutation({
       internal.example.myAction,
       { action: "succeed" },
     );
-    return id;
+    return runId;
   },
 });
 
