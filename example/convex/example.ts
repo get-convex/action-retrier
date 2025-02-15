@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import {
   internalAction,
   internalMutation,
-  internalQuery,
   mutation,
 } from "./_generated/server";
 import { internal, components } from "./_generated/api";
@@ -75,7 +74,7 @@ export const kickoffMyAction = mutation({
 
 export const kickoffMyActionLater = mutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const id: RunId = await actionRetrier.runAfter(
       ctx,
       1000,
