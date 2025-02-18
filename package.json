@@ -1,6 +1,6 @@
 {
   "name": "@convex-dev/action-retrier",
-  "version": "0.1.7-alpha.1",
+  "version": "0.2.0",
   "description": "Convex component for retrying idempotent actions.",
   "keywords": [
     "convex",
