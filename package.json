@@ -1,6 +1,6 @@
 {
   "name": "@convex-dev/action-retrier",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Convex component for retrying idempotent actions.",
   "keywords": [
     "convex",
@@ -46,7 +46,7 @@
     }
   },
   "peerDependencies": {
-    "convex": "~1.16.5 || >=1.17.0 <1.25.0"
+    "convex": "~1.16.5 || >=1.17.0 <1.35.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
