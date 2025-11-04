@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { Infer, v } from "convex/values";
+import { v, type Infer } from "convex/values";
 
 const logLevel = v.union(
   v.literal("DEBUG"),

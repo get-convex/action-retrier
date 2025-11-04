@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server.js";
 import { v } from "convex/values";
 import { options, runResult } from "./schema.js";
-import { finishExecution, startRun } from "./run.js";
+import { finishExecutionHandler, startRun } from "./run.js";
 
 export const start = mutation({
   args: {
@@ -76,7 +76,10 @@ export const cancel = mutation({
     // Note that this doesn't terminate execution immediately, but
     // we are guaranteed that `finishExecution` won't succeed.
     await ctx.scheduler.cancel(schedulerId);
-    await finishExecution(ctx, { runId: id, result: { type: "canceled" } });
+    await finishExecutionHandler(ctx, {
+      runId: id,
+      result: { type: "canceled" },
+    });
     return true;
   },
 });

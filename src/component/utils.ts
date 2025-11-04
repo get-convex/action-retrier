@@ -1,4 +1,4 @@
-import { LogLevel } from "./schema.js";
+import type { LogLevel } from "./schema.js";
 
 type Logger = {
   debug: (...args: unknown[]) => void;

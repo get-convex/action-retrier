@@ -9,6 +9,7 @@
  */
 
 import type * as example from "../example.js";
+import type { ComponentApi } from "@convex-dev/action-retrier/_generated/component.js";
 
 import type {
   ApiFromModules,
@@ -38,51 +39,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  actionRetrier: {
-    public: {
-      cancel: FunctionReference<
-        "mutation",
-        "internal",
-        { runId: string },
-        boolean
-      >;
-      cleanup: FunctionReference<
-        "mutation",
-        "internal",
-        { runId: string },
-        any
-      >;
-      start: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          functionArgs: any;
-          functionHandle: string;
-          options: {
-            base: number;
-            initialBackoffMs: number;
-            logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
-            maxFailures: number;
-            onComplete?: string;
-            runAfter?: number;
-            runAt?: number;
-          };
-        },
-        string
-      >;
-      status: FunctionReference<
-        "query",
-        "internal",
-        { runId: string },
-        | { type: "inProgress" }
-        | {
-            result:
-              | { returnValue: any; type: "success" }
-              | { error: string; type: "failed" }
-              | { type: "canceled" };
-            type: "completed";
-          }
-      >;
-    };
-  };
+  actionRetrier: ComponentApi<"actionRetrier">;
 };

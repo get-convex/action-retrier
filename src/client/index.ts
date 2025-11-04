@@ -1,16 +1,19 @@
 import {
   createFunctionHandle,
-  Expand,
-  FunctionArgs,
-  FunctionReference,
-  FunctionVisibility,
-  GenericDataModel,
-  GenericMutationCtx,
-  GenericQueryCtx,
+  type FunctionArgs,
+  type FunctionReference,
+  type FunctionVisibility,
+  type GenericDataModel,
+  type GenericMutationCtx,
+  type GenericQueryCtx,
 } from "convex/server";
-import { api } from "../component/_generated/api.js";
-import { GenericId, v, VString } from "convex/values";
-import { LogLevel, RunResult, runResult } from "../component/schema.js";
+import { v, type VString } from "convex/values";
+import {
+  type LogLevel,
+  type RunResult,
+  runResult,
+} from "../component/schema.js";
+import type { ComponentApi } from "../component/_generated/component.js";
 
 export type RunId = string & { __isRunId: true };
 export const runIdValidator = v.string() as VString<RunId>;
@@ -83,7 +86,7 @@ export class ActionRetrier {
    * @param options - Optional overrides for the default backoff and retry behavior.
    */
   constructor(
-    private component: UseApi<typeof api>,
+    private component: ComponentApi,
     options?: Options,
   ) {
     let DEFAULT_LOG_LEVEL: LogLevel = "INFO";
@@ -245,33 +248,6 @@ function stripUndefined<T extends object | undefined>(obj: T): T {
  * Validator for the `result` argument of the `onComplete` callback.
  */
 export const runResultValidator = runResult;
-
-type UseApi<API> = Expand<{
-  [mod in keyof API]: API[mod] extends FunctionReference<
-    infer FType,
-    "public",
-    infer FArgs,
-    infer FReturnType,
-    infer FComponentPath
-  >
-    ? FunctionReference<
-        FType,
-        "internal",
-        OpaqueIds<FArgs>,
-        OpaqueIds<FReturnType>,
-        FComponentPath
-      >
-    : UseApi<API[mod]>;
-}>;
-
-type OpaqueIds<T> =
-  T extends GenericId<infer _T>
-    ? string
-    : T extends (infer U)[]
-      ? OpaqueIds<U>[]
-      : T extends object
-        ? { [K in keyof T]: OpaqueIds<T[K]> }
-        : T;
 
 type RunQueryCtx = {
   runQuery: GenericQueryCtx<GenericDataModel>["runQuery"];

@@ -1,15 +1,15 @@
-import { FunctionHandle } from "convex/server";
+import type { FunctionHandle } from "convex/server";
 import { v } from "convex/values";
 import {
   internalAction,
   internalQuery,
   internalMutation,
-  MutationCtx,
+  type MutationCtx,
 } from "./_generated/server.js";
-import { Options, RunResult, runResult, RunState } from "./schema.js";
+import { runResult, type Options, type RunResult, type RunState } from "./schema.js";
 import { internal } from "./_generated/api.js";
 import { createLogger } from "./utils.js";
-import { Id } from "./_generated/dataModel.js";
+import type { Id } from "./_generated/dataModel.js";
 
 export async function startRun(
   ctx: MutationCtx,
@@ -142,7 +142,7 @@ export const heartbeat = internalMutation({
         type: "failed",
         error: TRANSIENT_ERROR_MESSAGE,
       };
-      await finishExecution(ctx, { runId: args.runId, result });
+      await finishExecutionHandler(ctx, { runId: args.runId, result });
       return;
     }
     switch (status.state.kind) {
@@ -172,7 +172,7 @@ export const heartbeat = internalMutation({
           type: "failed",
           error: TRANSIENT_ERROR_MESSAGE,
         };
-        await finishExecution(ctx, { runId: args.runId, result });
+        await finishExecutionHandler(ctx, { runId: args.runId, result });
         break;
       }
       // If the run succeeded but we think it's still executing, we
@@ -186,7 +186,7 @@ export const heartbeat = internalMutation({
       case "canceled": {
         logger.debug(`Finishing run ${args.runId} after scheduler cancelation`);
         const result: RunResult = { type: "canceled" };
-        await finishExecution(ctx, { runId: args.runId, result });
+        await finishExecutionHandler(ctx, { runId: args.runId, result });
         break;
       }
     }
@@ -213,94 +213,99 @@ export const finishExecution = internalMutation({
     runId: v.id("runs"),
     result: runResult,
   },
-  handler: async (ctx, args) => {
-    const run = await ctx.db.get(args.runId);
-    if (!run) {
-      throw new Error(`Run ${args.runId} not found`);
-    }
-    const logger = createLogger(run.options.logLevel);
-    logger.debug(`Finishing an execution of ${args.runId}`, run, args.result);
-
-    if (run.state.type !== "inProgress") {
-      logger.warn(
-        `Run ${args.runId} is no longer executing, dropping result.`,
-        args.result,
-      );
-      return;
-    }
-
-    // If we failed and have retries remaining, schedule a retry.
-    if (
-      args.result.type === "failed" &&
-      run.numFailures < run.options.maxFailures
-    ) {
-      const backoffMs =
-        run.options.initialBackoffMs *
-        Math.pow(run.options.base, run.numFailures + 1);
-      const nextAttempt = withJitter(backoffMs);
-      const startTime = Date.now() + nextAttempt;
-      logger.error(
-        `Run ${args.runId} failed, retrying in ${nextAttempt.toFixed(2)} ms: ${args.result.error}`,
-      );
-      const nextSchedulerId = await ctx.scheduler.runAt(
-        startTime,
-        internal.run.execute,
-        {
-          runId: args.runId,
-        },
-      );
-      run.state.startTime = startTime;
-      run.state.schedulerId = nextSchedulerId;
-      run.numFailures = run.numFailures + 1;
-      logger.debug(`Retrying run ${args.runId}`, run);
-      await ctx.db.replace(args.runId, run);
-    }
-    // Otherwise, complete the current run.
-    else {
-      switch (args.result.type) {
-        case "success": {
-          logger.info(`Run ${args.runId} succeeded.`);
-          break;
-        }
-        case "failed": {
-          logger.error(
-            `Run ${args.runId} failed too many times, not retrying: ${args.result.error}`,
-          );
-          break;
-        }
-        case "canceled": {
-          logger.info(`Run ${args.runId} canceled.`);
-          break;
-        }
-      }
-      if (run.options.onComplete) {
-        try {
-          logger.debug(`Running onComplete handler for ${args.runId}`);
-          const handle = run.options.onComplete as FunctionHandle<
-            "mutation",
-            { runId: Id<"runs">; result: RunResult }
-          >;
-          await ctx.runMutation(handle, {
-            runId: args.runId,
-            result: args.result,
-          });
-          logger.debug(`Finished running onComplete handler for ${args.runId}`);
-        } catch (e: any) {
-          logger.error(
-            `Error running onComplete handler for ${args.runId}: ${e.message}`,
-          );
-        }
-      }
-      run.state = {
-        type: "completed",
-        completedAt: Date.now(),
-        result: args.result,
-      };
-      logger.debug(`Finishing run ${args.runId}`, run);
-      await ctx.db.replace(args.runId, run);
-    }
-  },
+  handler: finishExecutionHandler,
 });
+
+export async function finishExecutionHandler(
+  ctx: MutationCtx,
+  args: { runId: Id<"runs">; result: RunResult },
+) {
+  const run = await ctx.db.get(args.runId);
+  if (!run) {
+    throw new Error(`Run ${args.runId} not found`);
+  }
+  const logger = createLogger(run.options.logLevel);
+  logger.debug(`Finishing an execution of ${args.runId}`, run, args.result);
+
+  if (run.state.type !== "inProgress") {
+    logger.warn(
+      `Run ${args.runId} is no longer executing, dropping result.`,
+      args.result,
+    );
+    return;
+  }
+
+  // If we failed and have retries remaining, schedule a retry.
+  if (
+    args.result.type === "failed" &&
+    run.numFailures < run.options.maxFailures
+  ) {
+    const backoffMs =
+      run.options.initialBackoffMs *
+      Math.pow(run.options.base, run.numFailures + 1);
+    const nextAttempt = withJitter(backoffMs);
+    const startTime = Date.now() + nextAttempt;
+    logger.error(
+      `Run ${args.runId} failed, retrying in ${nextAttempt.toFixed(2)} ms: ${args.result.error}`,
+    );
+    const nextSchedulerId = await ctx.scheduler.runAt(
+      startTime,
+      internal.run.execute,
+      {
+        runId: args.runId,
+      },
+    );
+    run.state.startTime = startTime;
+    run.state.schedulerId = nextSchedulerId;
+    run.numFailures = run.numFailures + 1;
+    logger.debug(`Retrying run ${args.runId}`, run);
+    await ctx.db.replace(args.runId, run);
+  }
+  // Otherwise, complete the current run.
+  else {
+    switch (args.result.type) {
+      case "success": {
+        logger.info(`Run ${args.runId} succeeded.`);
+        break;
+      }
+      case "failed": {
+        logger.error(
+          `Run ${args.runId} failed too many times, not retrying: ${args.result.error}`,
+        );
+        break;
+      }
+      case "canceled": {
+        logger.info(`Run ${args.runId} canceled.`);
+        break;
+      }
+    }
+    if (run.options.onComplete) {
+      try {
+        logger.debug(`Running onComplete handler for ${args.runId}`);
+        const handle = run.options.onComplete as FunctionHandle<
+          "mutation",
+          { runId: Id<"runs">; result: RunResult }
+        >;
+        await ctx.runMutation(handle, {
+          runId: args.runId,
+          result: args.result,
+        });
+        logger.debug(`Finished running onComplete handler for ${args.runId}`);
+      } catch (e: any) {
+        logger.error(
+          `Error running onComplete handler for ${args.runId}: ${e.message}`,
+        );
+      }
+    }
+    run.state = {
+      type: "completed",
+      completedAt: Date.now(),
+      result: args.result,
+    };
+    logger.debug(`Finishing run ${args.runId}`, run);
+    await ctx.db.replace(args.runId, run);
+  }
+}
 
 function withJitter(delay: number) {
   return delay * (0.5 + Math.random());
