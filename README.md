@@ -45,7 +45,7 @@ Then, install the component into your Convex project within the
 ```ts
 // convex/convex.config.ts
 import { defineApp } from "convex/server";
-import actionRetrier from "@convex-dev/action-retrier/convex.config";
+import actionRetrier from "@convex-dev/action-retrier/convex.config.js";
 
 const app = defineApp();
 app.use(actionRetrier);
