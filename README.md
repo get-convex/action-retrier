@@ -146,7 +146,7 @@ export const kickoffExampleAction = action(async (ctx) => {
 });
 
 export const exampleCallback = internalMutation({
-  args: { id: runIdValidator, result: runResultValidator },
+  args: { runId: runIdValidator, result: runResultValidator },
   handler: async (ctx, args) => {
     if (args.result.type === "success") {
       console.log(
