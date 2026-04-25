@@ -38,7 +38,7 @@ export const status = query({
     if (!id) {
       throw new Error(`Run ${args.runId} not found`);
     }
-    const run = await ctx.db.get(id);
+    const run = await ctx.db.get("runs", id);
     if (!run) {
       throw new Error(`Run ${args.runId} not found`);
     }
@@ -62,7 +62,7 @@ export const cancel = mutation({
     if (!id) {
       return false;
     }
-    const run = await ctx.db.get(id);
+    const run = await ctx.db.get("runs", id);
     if (!run) {
       return false;
     }
@@ -93,13 +93,13 @@ export const cleanup = mutation({
     if (!id) {
       throw new Error(`Run ${args.runId} not found`);
     }
-    const run = await ctx.db.get(id);
+    const run = await ctx.db.get("runs", id);
     if (!run) {
       throw new Error(`Run ${args.runId} not found`);
     }
     if (run.state.type !== "completed") {
       throw new Error(`Run ${args.runId} hasn't completed.`);
     }
-    await ctx.db.delete(id);
+    await ctx.db.delete("runs", id);
   },
 });

@@ -42,7 +42,7 @@ export async function startRun(
     schedulerId,
     startTime,
   };
-  await ctx.db.replace(runId, run);
+  await ctx.db.replace("runs", runId, run);
   logger.debug(`Started run ${runId} @ ${startTime}`, run);
 
   const nextHeartbeat = startTime + withJitter(HEARTBEAT_INTERVAL_MS);
@@ -122,7 +122,7 @@ export const heartbeat = internalMutation({
     runId: v.id("runs"),
   },
   handler: async (ctx, args) => {
-    const run = await ctx.db.get(args.runId);
+    const run = await ctx.db.get("runs", args.runId);
     if (!run) {
       return;
     }
@@ -133,7 +133,7 @@ export const heartbeat = internalMutation({
       );
       return;
     }
-    const status = await ctx.db.system.get(run.state.schedulerId);
+    const status = await ctx.db.system.get("_scheduled_functions", run.state.schedulerId);
     logger.debug(`Run ${args.runId} scheduler status`, status);
 
     if (!status) {
@@ -203,7 +203,7 @@ export const load = internalQuery({
     runId: v.id("runs"),
   },
   handler: async (ctx, args) => {
-    const run = await ctx.db.get(args.runId);
+    const run = await ctx.db.get("runs", args.runId);
     if (!run) {
       throw new Error(`Run ${args.runId} not found`);
     }
@@ -225,7 +225,7 @@ export async function finishExecutionHandler(
   ctx: MutationCtx,
   args: { runId: Id<"runs">; result: RunResult },
 ) {
-  const run = await ctx.db.get(args.runId);
+  const run = await ctx.db.get("runs", args.runId);
   if (!run) {
     throw new Error(`Run ${args.runId} not found`);
   }
@@ -264,7 +264,7 @@ export async function finishExecutionHandler(
     run.state.schedulerId = nextSchedulerId;
     run.numFailures = run.numFailures + 1;
     logger.debug(`Retrying run ${args.runId}`, run);
-    await ctx.db.replace(args.runId, run);
+    await ctx.db.replace("runs", args.runId, run);
   }
   // Otherwise, complete the current run.
   else {
@@ -308,7 +308,7 @@ export async function finishExecutionHandler(
       result: args.result,
     };
     logger.debug(`Finishing run ${args.runId}`, run);
-    await ctx.db.replace(args.runId, run);
+    await ctx.db.replace("runs", args.runId, run);
   }
 }
 
@@ -330,7 +330,7 @@ export const cleanupExpiredRuns = internalMutation({
       )
       .take(1024);
     for (const doc of expired) {
-      await ctx.db.delete(doc._id);
+      await ctx.db.delete("runs", doc._id);
     }
     console.log(`Cleaned up ${expired.length} expired runs`);
     if (expired.length === MAX_CLEANUP_BATCH) {
