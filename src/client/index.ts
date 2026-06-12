@@ -3,6 +3,7 @@ import {
   type FunctionArgs,
   type FunctionReference,
   type FunctionVisibility,
+  type GenericActionCtx,
   type GenericDataModel,
   type GenericMutationCtx,
   type GenericQueryCtx,
@@ -125,7 +126,7 @@ export class ActionRetrier {
    * @returns - A `RunId` for the run that can be used to query its status below.
    */
   async run<F extends FunctionReference<"action", FunctionVisibility>>(
-    ctx: RunMutationCtx,
+    ctx: MutationCtx | ActionCtx,
     reference: F,
     args?: FunctionArgs<F>,
     options?: RunOptions,
@@ -157,7 +158,7 @@ export class ActionRetrier {
    * @param options - See {@link RunOptions}.
    */
   async runAt<F extends FunctionReference<"action", FunctionVisibility>>(
-    ctx: RunMutationCtx,
+    ctx: MutationCtx | ActionCtx,
     runAtTimestampMs: number,
     reference: F,
     args?: FunctionArgs<F>,
@@ -183,7 +184,7 @@ export class ActionRetrier {
    * @param options - See {@link RunOptions}.
    */
   async runAfter<F extends FunctionReference<"action", FunctionVisibility>>(
-    ctx: RunMutationCtx,
+    ctx: MutationCtx | ActionCtx,
     runAfterMs: number,
     reference: F,
     args?: FunctionArgs<F>,
@@ -205,7 +206,10 @@ export class ActionRetrier {
    * the run has completed, the `result.type` field indicates whether it succeeded,
    * failed, or was canceled.
    */
-  async status(ctx: RunQueryCtx, runId: RunId): Promise<RunStatus> {
+  async status(
+    ctx: QueryCtx | MutationCtx | ActionCtx,
+    runId: RunId,
+  ): Promise<RunStatus> {
     return ctx.runQuery(this.component.public.status, { runId });
   }
 
@@ -217,7 +221,7 @@ export class ActionRetrier {
    * @param ctx - The context object from your mutation or action.
    * @param runId - The `RunId` returned from `run`.
    */
-  async cancel(ctx: RunMutationCtx, runId: RunId) {
+  async cancel(ctx: MutationCtx | ActionCtx, runId: RunId) {
     await ctx.runMutation(this.component.public.cancel, { runId });
   }
 
@@ -230,7 +234,7 @@ export class ActionRetrier {
    * @param ctx - The context object from your mutation or action.
    * @param runId - The `RunId` returned from `run`.
    */
-  async cleanup(ctx: RunMutationCtx, runId: RunId) {
+  async cleanup(ctx: MutationCtx | ActionCtx, runId: RunId) {
     await ctx.runMutation(this.component.public.cleanup, { runId });
   }
 }
@@ -249,10 +253,12 @@ function stripUndefined<T extends object | undefined>(obj: T): T {
  */
 export const runResultValidator = runResult;
 
-type RunQueryCtx = {
-  runQuery: GenericQueryCtx<GenericDataModel>["runQuery"];
-};
-
-type RunMutationCtx = {
-  runMutation: GenericMutationCtx<GenericDataModel>["runMutation"];
-};
+type QueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
+type MutationCtx = Pick<
+  GenericMutationCtx<GenericDataModel>,
+  "runQuery" | "runMutation"
+>;
+type ActionCtx = Pick<
+  GenericActionCtx<GenericDataModel>,
+  "runQuery" | "runMutation" | "runAction"
+>;
