@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Update ctx types for convex@1.41+
+
 ## 0.3.0
 
 - Adds /test and /\_generated/component.js entrypoints
