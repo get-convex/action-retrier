@@ -54,7 +54,7 @@
     }
   },
   "peerDependencies": {
-    "convex": "^1.24.8"
+    "convex": "^1.25.4"
   },
   "devDependencies": {
     "@convex-dev/eslint-plugin": "2.0.0",
